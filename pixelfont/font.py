@@ -64,14 +64,27 @@ class Font:
         return True
 
     def addNewGlyph(self) -> int:
-        ordinal = choice(list(filter(
+        choices = list(filter(
             lambda glyph: glyph not in self.ordinals(),
             range(127),
-        )))
-        
+        ))
+
+        if len(choices) == 0:
+            return -1
+
+        ordinal = choice(choices)
         self._glyphs.append(Glyph(ordinal))
         
         return ordinal
+
+    def removeGlyph(self, ordinal: int) -> bool:
+        self._glyphs = list(filter(
+            lambda glyph: glyph._ordinal != ordinal,
+            self._glyphs,
+        ))
+
+    def glyphCount(self) -> int:
+        return len(self._glyphs)
 
 if __name__ == '__main__':
     font = Font()

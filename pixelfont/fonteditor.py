@@ -83,7 +83,6 @@ class FontEditor(QMainWindow):
         self.listView.selectionModel().selectionChanged.connect(self._glyphTableSelectionChanged)
         self.listView.selectionModel().select(self.listView.model().index(0), QItemSelectionModel.SelectionFlag.Select)
 
-
     def _glyphTableEdited(self,
         topLeft: QModelIndex,
         bottomRight: QModelIndex,
@@ -105,11 +104,23 @@ class FontEditor(QMainWindow):
 
     def addGlyph(self) -> None:
         ordinal = self._font.addNewGlyph()
+        
+        if ordinal == -1:
+            return
+
         self._updateGlyphTable()
         self.listView.selectionModel().select(self.listView.model().index(self._font.ordinals().index(ordinal)), QItemSelectionModel.SelectionFlag.Select)
 
     def removeCurrentGlyph(self) -> None:
-        pass
+        selectedIndices = self.listView.selectionModel().selection().indexes()
+
+        if len(selectedIndices) == 0:
+            return
+        
+        self._font.removeGlyph(ord(selectedIndices[0].model().data(selectedIndices[0])))
+        self._updateGlyphTable()
+        if self._font.glyphCount() > 0:
+            self.listView.selectionModel().select(self.listView.model().index(0), QItemSelectionModel.SelectionFlag.Select)
 
 if __name__ == '__main__':
     app = QApplication(argv)
