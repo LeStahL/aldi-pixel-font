@@ -43,7 +43,7 @@ class FontEditor(QMainWindow):
             f.close()
 
     def fileSaveAs(self):
-        self._fileName = QFileDialog.getSaveFileName(
+        (self._fileName, _) = QFileDialog.getSaveFileName(
             self,
             "Save font binary...",
             "~",
@@ -54,7 +54,7 @@ class FontEditor(QMainWindow):
             self.fileSave()
 
     def fileOpen(self):
-        self._fileName = QFileDialog.getOpenFileName(
+        (self._fileName, _) = QFileDialog.getOpenFileName(
             self,
             "Open font binary...",
             "~",

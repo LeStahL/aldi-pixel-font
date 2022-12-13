@@ -1,23 +1,28 @@
-from typing import Optional
+from typing import Optional, List
 import construct
 
 class Glyph:
     Width = 5
     Height = 6
-    Size = 32
 
-    BinaryFormat = construct.Struct(
-        'data' / construct.Array(
+    BinaryFormat = construct.Bitwise(construct.Aligned(
+        8,
+        "data" / construct.Array(
             Width * Height,
             construct.Flag,
         ),
-        construct.BitsInteger(2),
+    ))
+
+    BinarySaveFormat = construct.Struct(
+        'ordinal' / construct.Int8un,
+        'pixels' / BinaryFormat,
     )
 
     def __init__(self,
         ordinal: int = 0,
+        pixels: Optional[List[bool]] = None,
     ):
-        self._pixels = [False] * Glyph.Width * Glyph.Height
+        self._pixels = pixels if pixels is not None else [False] * Glyph.Width * Glyph.Height
         self._ordinal = ordinal
 
     def toggle(self,
@@ -33,14 +38,20 @@ class Glyph:
         return True
 
     def toBytes(self) -> bytes:
-        return Glyph.BinaryFormat.build({
-            'data': self._pixels,
-        })
+        return Glyph.BinarySaveFormat.build(self.toObject())
+
+    def toObject(self) -> object:
+        return {
+            'ordinal': self._ordinal,
+            'pixels': self._pixels,
+        }
 
     def fromBytes(self,
         data: bytes,
     ) -> None:
-        self._pixels = Glyph.BinaryFormat.parse(data)['data']
+        parsed = Glyph.BinarySaveFormat.parse(data)
+        self._pixels = parsed['pixels']
+        self._ordinal = parsed['ordinal']
 
     def toInt(self) -> int:
         return int.from_bytes(self.serialize(), 'big')
@@ -63,3 +74,15 @@ class Glyph:
         y: int,
     ) -> bool:
         return x >= 0 and x < Glyph.Width and y >= 0 and y < Glyph.Height
+
+if __name__ == '__main__':
+    glyph = Glyph(ord('a'))
+    glyph.toggle(1, 1, True)
+
+    serialized = glyph.toBytes()
+
+    glyph = Glyph()
+
+    glyph.fromBytes(serialized)
+
+    assert glyph.isOn(1, 1)
