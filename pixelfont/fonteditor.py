@@ -81,6 +81,8 @@ class FontEditor(QMainWindow):
         self.listView.setModel(newModel)
 
         self.listView.selectionModel().selectionChanged.connect(self._glyphTableSelectionChanged)
+        self.listView.selectionModel().select(self.listView.model().index(0), QItemSelectionModel.SelectionFlag.Select)
+
 
     def _glyphTableEdited(self,
         topLeft: QModelIndex,
