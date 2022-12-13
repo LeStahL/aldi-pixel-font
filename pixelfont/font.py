@@ -1,6 +1,7 @@
 import construct
 from typing import Optional, List
 from glyph import *
+from random import choice
 
 class Font:
     BinarySaveFormat = construct.GreedyRange(
@@ -47,6 +48,30 @@ class Font:
             return None
         
         return result[0]
+
+    def renameGlyph(self,
+        fromOrdinal: int,
+        toOrdinal: int,
+    ) -> bool:
+        if fromOrdinal not in self.ordinals():
+            return False
+
+        if toOrdinal in self.ordinals():
+            return False
+
+        self.glyphWithOrdinal(fromOrdinal)._ordinal = toOrdinal
+        
+        return True
+
+    def addNewGlyph(self) -> int:
+        ordinal = choice(list(filter(
+            lambda glyph: glyph not in self.ordinals(),
+            range(127),
+        )))
+        
+        self._glyphs.append(Glyph(ordinal))
+        
+        return ordinal
 
 if __name__ == '__main__':
     font = Font()

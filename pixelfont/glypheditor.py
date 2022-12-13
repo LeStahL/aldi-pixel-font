@@ -99,7 +99,6 @@ class GlyphEditor(QWidget):
     def setGlyph(self,
         glyph: Glyph,
     ) -> None:
-        print('changing glyph from:', self._glyph._ordinal, self._glyph.toBytes(), 'to:', glyph._ordinal, glyph.toBytes())
         self._glyph = glyph
         self.update()
 
