@@ -162,16 +162,8 @@ uint {uniqueFontId}_text_strings[{textDataSize}] = uint[{textDataSize}](
 );
 
 float d{uniqueFontId}(vec2 uv, uint ordinal, float pixelSize) {{
-    vec2 x = mod(uv, pixelSize) - .5*pixelSize,
-        xij = (uv - x)/pixelSize;
-        
-    if(any(lessThan(xij, vec2(0))) || any(greaterThanEqual(xij, vec2({width},{height}))))
-        return 1.;
-
-    if(bool(({uniqueFontId}[ordinal - {firstOrdinal}u] >> ({width}u * (uint(xij.y) + 1u) + 1u - uint(xij.x))) & 1u))
-        return -1.;
-
-    return 1.;
+    vec2 xij = (uv - mod(uv, pixelSize) + .5*pixelSize)/pixelSize;
+    return !(any(lessThan(xij, vec2(0))) || any(greaterThanEqual(xij, vec2({width},{height})))) && bool(({uniqueFontId}[ordinal - {firstOrdinal}u] >> ({width}u * (uint(xij.y) + 1u) + 1u - uint(xij.x))) & 1u) ? -1. : 1.;
 }}
 
 uint decode_single(uint byteIndex, uint data) {{
