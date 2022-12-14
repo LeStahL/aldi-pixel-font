@@ -7,6 +7,7 @@ from sys import argv
 from glypheditor import GlyphEditor
 from font import Font
 from glyph import Glyph
+from text import Text
 from os.path import basename
 
 class FontEditor(QMainWindow):
@@ -31,10 +32,12 @@ class FontEditor(QMainWindow):
         self.actionAdd_Glyph.triggered.connect(self.addGlyph)
         self.actionRemove_Glyph.triggered.connect(self.removeCurrentGlyph)
         self.actionExport_GLSL.triggered.connect(self.exportFont)
+        self.actionAdd_Line.triggered.connect(self.addLine)
 
     def fileNew(self) -> None:
         self._fileName = None
         self._font = Font()
+        self._text = Text()
 
         self._updateGlyphTable()
 
@@ -148,6 +151,12 @@ class FontEditor(QMainWindow):
 uint {uniqueFontId}[{glyphCount}] = uint[{glyphCount}](
     {dataLines}
 );
+uint {uniqueFontId}_text_offsets[{textCount}] = uint[{textCount}](
+    {textOffsetLines}
+);
+uint {uniqueFontId}_text_strings[{textDataSize}] = uint[{textDataSize}](
+    {textDataLines}
+);
 
 float d{uniqueFontId}(vec2 uv, int ordinal, float pixelSize) {{
     vec2 x = mod(uv, pixelSize) - .5*pixelSize,
@@ -170,21 +179,42 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {{
 '''.format(
     uniqueFontId = self._fontId(shaderFileName),
     glyphCount = self._font.glyphCount(),
-    dataLines = '\n    '.join(map(
-        lambda chunk: ', '.join(map(
-            lambda glyph: self._alignWidth('{}u'.format(glyph.toUnsignedInt())),
-            chunk,
-        )) + ', // {}'.format(''.join(map(
+    dataLines = ',\n    '.join(map(
+        lambda chunk:  '/** {:4} **/ '.format(''.join(map(
             lambda glyph: chr(glyph._ordinal),
             chunk,
-        ))),
+        ))) + ', '.join(map(
+            lambda glyph: self._alignWidth('{}u'.format(glyph.toUnsignedInt())),
+            chunk,
+        )),
         self._font.chunks(4),
     )),
     width = Glyph.Width,
     height = Glyph.Height,
     firstOrdinal = self._font.ordinals()[0],
+    textCount = self._text.lineCount(),
+    textOffsetLines = ',\n    '.join(map(
+        lambda offset: '{}u'.format(offset),
+        self._text.offsets(),
+    )),
+    textDataSize = len(self._text.toUnsignedIntegerArray()),
+    textDataLines = ',\n    '.join(map(
+        lambda chunk:  '/** {:16} **/ '.format(''.join(map(
+            lambda num: ''.join(map(chr, Text.BinaryDecodeFormat.parse(Text.BinaryExportFormat.build([num])))),
+            chunk,
+        ))).replace('\n', ' ').replace('\t', ' ').replace('\r', ' ').replace('\0', ' ') + ', '.join(map(
+            lambda num: self._alignWidth('{}u'.format(num)),
+            chunk,
+        )),
+        self._text.chunks(4),
+    )),
 ))
             f.close()
+
+    def addLine(self):
+        if self.lineEdit.text() != "":
+            self._text.add(self.lineEdit.text())
+            self.lineEdit.setText("")
 
 if __name__ == '__main__':
     app = QApplication(argv)

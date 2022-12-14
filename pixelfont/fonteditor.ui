@@ -60,8 +60,18 @@
     <addaction name="separator"/>
     <addaction name="actionExport_GLSL"/>
    </widget>
+   <widget class="QMenu" name="menuText">
+    <property name="title">
+     <string>Text</string>
+    </property>
+    <addaction name="actionSave_Text_As"/>
+    <addaction name="actionLoad_Text"/>
+    <addaction name="separator"/>
+    <addaction name="actionAdd_Line"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuFont"/>
+   <addaction name="menuText"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="dockWidget">
@@ -209,6 +219,24 @@
   <action name="actionExport_GLSL">
    <property name="text">
     <string>Export GLSL</string>
+   </property>
+  </action>
+  <action name="actionSave_Text_As">
+   <property name="text">
+    <string>Save Text As...</string>
+   </property>
+  </action>
+  <action name="actionLoad_Text">
+   <property name="text">
+    <string>Load Text...</string>
+   </property>
+  </action>
+  <action name="actionAdd_Line">
+   <property name="text">
+    <string>Add Line</string>
+   </property>
+   <property name="shortcut">
+    <string>Return</string>
    </property>
   </action>
  </widget>

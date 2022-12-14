@@ -5,12 +5,20 @@ class Text:
     BinarySaveFormat = construct.Aligned(
         4,
         construct.GreedyRange(
-            construct.PascalString,
+            construct.PascalString(
+                construct.Int8un,
+                'utf-8',
+            ),
         ),
     )
-    
-    BinaryExporFormat = construct.GreedyRange(
+
+    BinaryExportFormat = construct.GreedyRange(
         construct.Int32un,
+    )
+
+    BinaryDecodeFormat = construct.Array(
+        4,
+        construct.Int8un,
     )
 
     def __init__(self) -> None:
@@ -26,4 +34,38 @@ class Text:
         self._lines = Text.BinarySaveFormat.parse(data)
 
     def toUnsignedIntegerArray(self) -> List[int]:
-        return 
+        return Text.BinaryExportFormat.parse(
+            Text.BinarySaveFormat.build(self._lines),
+        )
+
+    def offsets(self):
+        result = []
+        offset = 0
+        for line in self._lines:
+            result.append(offset),
+            offset += len(line) + 1
+        return result
+
+    def lineCount(self):
+        return len(self._lines)
+
+    def chunks(self, width: int) -> List[List[int]]:
+        entireList = self.toUnsignedIntegerArray()
+        return [entireList[i:i + width] for i in range(0, len(entireList), width)]
+
+if __name__ == '__main__':
+    text = Text()
+    text.add("Hello, World!")
+    text.add("Foobar.")
+    
+    serialized = text.toBytes()
+    
+    print(serialized)
+    print(text.toUnsignedIntegerArray())
+    print(text.offsets())
+
+    text1 = Text()
+    text1.fromBytes(serialized)
+
+    for text in text1._lines:
+        print(text)
