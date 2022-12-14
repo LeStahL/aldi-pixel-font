@@ -32,7 +32,6 @@ class GlyphEditor(QWidget):
         dy = int(self.rect().height() / Glyph.Height)
 
         for x in range(Glyph.Width):
-            painter.drawLine(x * dx, 0, x * dx, self.rect().height())
             for y in range(Glyph.Height):
                 on = self._glyph.isOn(x,y)
                 if on is not None:
@@ -43,6 +42,7 @@ class GlyphEditor(QWidget):
                         dy,
                         QBrush(QColor(Qt.GlobalColor.black if on else Qt.GlobalColor.white)),
                     )
+            painter.drawLine(x * dx, 0, x * dx, self.rect().height())
         for y in range(Glyph.Height):
             painter.drawLine(0, y * dy, self.rect().width(), y * dy)
 
