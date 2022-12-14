@@ -7,7 +7,7 @@ class Text:
         construct.GreedyRange(
             construct.PascalString(
                 construct.Int8un,
-                'utf-8',
+                'ascii',
             ),
         ),
     )

@@ -161,24 +161,52 @@ uint {uniqueFontId}_text_strings[{textDataSize}] = uint[{textDataSize}](
     {textDataLines}
 );
 
-float d{uniqueFontId}(vec2 uv, int ordinal, float pixelSize) {{
+float d{uniqueFontId}(vec2 uv, uint ordinal, float pixelSize) {{
     vec2 x = mod(uv, pixelSize) - .5*pixelSize,
         xij = (uv - x)/pixelSize;
         
     if(any(lessThan(xij, vec2(0))) || any(greaterThanEqual(xij, vec2({width},{height}))))
         return 1.;
 
-    if(bool((font_frag[ordinal - {firstOrdinal}] >> ({width}u * (uint(xij.y) + 1u) + 1u - uint(xij.x))) & 1u))
+    if(bool(({uniqueFontId}[ordinal - {firstOrdinal}u] >> ({width}u * (uint(xij.y) + 1u) + 1u - uint(xij.x))) & 1u))
         return -1.;
 
     return 1.;
 }}
 
+uint decode_single(uint byteIndex, uint data) {{
+    return (data >> (8u * byteIndex)) & 0xffu;
+}}
+
+uvec2 localIndices(uint globalByteIndex) {{
+    uint localByteIndex = globalByteIndex % 4u,
+        globalIntegerIndex = (globalByteIndex - localByteIndex) / 4u;
+    return uvec2(globalIntegerIndex, localByteIndex);
+}}
+
+float d{uniqueFontId}_text(vec2 uv, uint index, float pixelSize) {{
+    float glyphSize = float({width} + 1)*pixelSize,
+        x = mod(uv.x, glyphSize),
+        xi = (uv.x - x)/glyphSize;
+       
+    uvec2 localTextIndices = localIndices({uniqueFontId}_text_offsets[index]);
+    uint textSize = decode_single(localTextIndices.y, {uniqueFontId}_text_strings[localTextIndices.x]);
+    if(xi < 0. || xi >= float(textSize) || abs(uv.y-.5*{height}.*pixelSize) > {height}.*pixelSize)
+        return 1.;
+        
+    localTextIndices = localIndices({uniqueFontId}_text_offsets[index] + uint(xi) + 1u);
+    uint ordinal = decode_single(localTextIndices.y, {uniqueFontId}_text_strings[localTextIndices.x]);
+        
+    return d{uniqueFontId}(vec2(x, uv.y), ordinal, pixelSize);
+}}
+
 void mainImage(out vec4 fragColor, vec2 fragCoord) {{
     vec2 uv = (fragCoord-.5*iResolution.xy)/iResolution.y;
     fragColor = vec4(1);
-    fragColor.rgb = mix(fragColor.rgb, vec3(0), step(d{uniqueFontId}(uv, 35, .05), 0.));
+    fragColor.rgb = mix(fragColor.rgb, vec3(0), step(d{uniqueFontId}(uv+vec2(.5*iResolution.x/iResolution.y,0.)-7.*.01*vec2(0.,1.), 66u, .01), 0.));
+    fragColor.rgb = mix(fragColor.rgb, vec3(0), step(d{uniqueFontId}_text(uv+vec2(.5*iResolution.x/iResolution.y,0.), 0u, .005), 0.));
 }}
+
 '''.format(
     uniqueFontId = self._fontId(shaderFileName),
     glyphCount = self._font.glyphCount(),
@@ -196,10 +224,6 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {{
     height = Glyph.Height,
     firstOrdinal = self._font.ordinals()[0],
     textCount = self._text.lineCount(),
-    # textOffsetLines = ',\n    '.join(map(
-    #     lambda offset: '{}u'.format(offset),
-    #     self._text.offsets(),
-    # )),
     textOffsetLines = ',\n    '.join(map(
         lambda chunk:  ', '.join(map(
             lambda num: self._alignWidth('{}u'.format(num)),
@@ -218,6 +242,7 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {{
         )),
         self._text.chunks(4),
     )),
+    # widthPlusOne = Glyph.Width + 1
 ))
             f.close()
 
