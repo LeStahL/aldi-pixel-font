@@ -53,6 +53,10 @@ class Text:
         entireList = self.toUnsignedIntegerArray()
         return [entireList[i:i + width] for i in range(0, len(entireList), width)]
 
+    def offsetChunks(self, width: int):
+        entireList = self.offsets()
+        return [entireList[i:i + width] for i in range(0, len(entireList), width)]
+
 if __name__ == '__main__':
     text = Text()
     text.add("Hello, World!")
