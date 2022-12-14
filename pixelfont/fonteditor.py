@@ -183,13 +183,8 @@ float d{uniqueFontId}_text(vec2 uv, uint index, float pixelSize) {{
        
     uvec2 localTextIndices = localIndices({uniqueFontId}_text_offsets[index]);
     uint textSize = decode_single(localTextIndices.y, {uniqueFontId}_text_strings[localTextIndices.x]);
-    if(xi < 0. || xi >= float(textSize) || abs(uv.y-.5*{height}.*pixelSize) > {height}.*pixelSize)
-        return 1.;
-        
     localTextIndices = localIndices({uniqueFontId}_text_offsets[index] + uint(xi) + 1u);
-    uint ordinal = decode_single(localTextIndices.y, {uniqueFontId}_text_strings[localTextIndices.x]);
-        
-    return d{uniqueFontId}(vec2(x, uv.y), ordinal, pixelSize);
+    return (xi < 0. || xi >= float(textSize) || abs(uv.y-.5*{height}.*pixelSize) > {height}.*pixelSize) ? 1. : d{uniqueFontId}(vec2(x, uv.y), decode_single(localTextIndices.y, {uniqueFontId}_text_strings[localTextIndices.x]), pixelSize);
 }}
 
 void mainImage(out vec4 fragColor, vec2 fragCoord) {{
