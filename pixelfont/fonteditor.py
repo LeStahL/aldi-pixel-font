@@ -6,7 +6,8 @@ from typing import Optional, List
 from sys import argv
 from glypheditor import GlyphEditor
 from font import Font
-from uuid import uuid4
+from glyph import Glyph
+from os.path import basename
 
 class FontEditor(QMainWindow):
     def __init__(self,
@@ -125,11 +126,14 @@ class FontEditor(QMainWindow):
         if self._font.glyphCount() > 0:
             self.listView.selectionModel().select(self.listView.model().index(0), QItemSelectionModel.SelectionFlag.Select)
 
+    def _fontId(self, shaderFileName) -> None:
+        return basename(shaderFileName).replace(' ', '_').replace('.', '_')
+
     def exportFont(self) -> None:
         (shaderFileName, _) = QFileDialog.getSaveFileName(
             self,
             "Export Font GLSL...",
-            "~",
+            "font",
             "Fragment shaders (*.frag)",
         )
 
@@ -141,16 +145,38 @@ class FontEditor(QMainWindow):
 uint {uniqueFontId}[{glyphCount}] = uint[{glyphCount}](
     {dataLines}
 );
+
+float d{uniqueFontId}(vec2 uv, int ordinal, float pixelSize) {{
+    vec2 x = mod(uv, pixelSize) - .5*pixelSize,
+        xij = (uv - x)/pixelSize;
+        
+    if(any(lessThan(xij, vec2(0))) || any(greaterThanEqual(xij, vec2({width},{height}))))
+        return 1.;
+
+    if(bool((font_frag[ordinal - {firstOrdinal}] >> ({width}u * (uint(xij.y) + 1u) + 1u - uint(xij.x))) & 1u))
+        return -1.;
+
+    return 1.;
+}}
+
+void mainImage(out vec4 fragColor, vec2 fragCoord) {{
+    vec2 uv = (fragCoord-.5*iResolution.xy)/iResolution.y;
+    fragColor = vec4(1);
+    fragColor.rgb = mix(fragColor.rgb, vec3(0), step(d{uniqueFontId}(uv, 35, .05), 0.));
+}}
 '''.format(
-    uniqueFontId = '_' + str(uuid4()).split('-')[0],
+    uniqueFontId = self._fontId(shaderFileName),
     glyphCount = self._font.glyphCount(),
-    dataLines = '\n    '.join(map(
+    dataLines = ',\n    '.join(map(
         lambda chunk: ', '.join(map(
             lambda glyph: '{}u'.format(glyph.toUnsignedInt()),
             chunk,
         )),
-        self._font.chunks(6),
-    ))
+        self._font.chunks(4),
+    )),
+    width = Glyph.Width,
+    height = Glyph.Height,
+    firstOrdinal = self._font.ordinals()[0],
 ))
             f.close()
 
