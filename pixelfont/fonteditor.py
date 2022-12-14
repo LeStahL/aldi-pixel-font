@@ -6,6 +6,7 @@ from typing import Optional, List
 from sys import argv
 from glypheditor import GlyphEditor
 from font import Font
+from uuid import uuid4
 
 class FontEditor(QMainWindow):
     def __init__(self,
@@ -28,6 +29,7 @@ class FontEditor(QMainWindow):
         self.actionSave_As.triggered.connect(self.fileSaveAs)
         self.actionAdd_Glyph.triggered.connect(self.addGlyph)
         self.actionRemove_Glyph.triggered.connect(self.removeCurrentGlyph)
+        self.actionExport_GLSL.triggered.connect(self.exportFont)
 
     def fileNew(self) -> None:
         self._fileName = None
@@ -38,6 +40,7 @@ class FontEditor(QMainWindow):
     def fileSave(self) -> None:
         if not self._fileName:
             self.fileSaveAs()
+            return
 
         with open(self._fileName, "wb") as f:
             f.write(self._font.toBytes())
@@ -121,6 +124,35 @@ class FontEditor(QMainWindow):
         self._updateGlyphTable()
         if self._font.glyphCount() > 0:
             self.listView.selectionModel().select(self.listView.model().index(0), QItemSelectionModel.SelectionFlag.Select)
+
+    def exportFont(self) -> None:
+        (shaderFileName, _) = QFileDialog.getSaveFileName(
+            self,
+            "Export Font GLSL...",
+            "~",
+            "Fragment shaders (*.frag)",
+        )
+
+        if shaderFileName == "":
+            return
+
+        with open(shaderFileName, "wt") as f:
+            f.write('''
+uint {uniqueFontId}[{glyphCount}] = uint[{glyphCount}](
+    {dataLines}
+);
+'''.format(
+    uniqueFontId = '_' + str(uuid4()).split('-')[0],
+    glyphCount = self._font.glyphCount(),
+    dataLines = '\n    '.join(map(
+        lambda chunk: ', '.join(map(
+            lambda glyph: '{}u'.format(glyph.toUnsignedInt()),
+            chunk,
+        )),
+        self._font.chunks(6),
+    ))
+))
+            f.close()
 
 if __name__ == '__main__':
     app = QApplication(argv)

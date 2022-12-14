@@ -9,7 +9,7 @@ class Font:
     )
 
     def __init__(self,
-        ordinals: List[int] = [ord('a'), ord('b')],
+        ordinals: List[int] = range(32, 126),
     ) -> None:
         self._glyphs = list(map(
             lambda ordinal: Glyph(ordinal),
@@ -85,6 +85,13 @@ class Font:
 
     def glyphCount(self) -> int:
         return len(self._glyphs)
+
+    def chunks(self, width: int) -> List[List[Glyph]]:
+        sortedGlyphs = list(map(
+            lambda ordinal: self.glyphWithOrdinal(ordinal),
+            self.ordinals(),
+        ))
+        return [sortedGlyphs[i:i + width] for i in range(0, len(sortedGlyphs), width)]
 
 if __name__ == '__main__':
     font = Font()

@@ -7,7 +7,7 @@ class Glyph:
 
     BinaryFormat = construct.Bitwise(construct.Aligned(
         8,
-        "data" / construct.Array(
+        construct.Array(
             Width * Height,
             construct.Flag,
         ),
@@ -53,13 +53,17 @@ class Glyph:
         self._pixels = parsed['pixels']
         self._ordinal = parsed['ordinal']
 
-    def toInt(self) -> int:
-        return int.from_bytes(self.serialize(), 'big')
+    def toUnsignedInt(self) -> int:
+        return int.from_bytes(
+            Glyph.BinaryFormat.build(self._pixels),
+            'big',
+            signed=False,
+        )
 
-    def fromInt(self,
+    def fromUnsignedInt(self,
         data: int,
     ) -> None:
-        self.fromBytes(data.to_bytes('big'))
+        self._pixels = Glyph.BinaryFormat.parse(data.to_bytes('big', signed=False))
 
     def isOn(self,
         x: int,
