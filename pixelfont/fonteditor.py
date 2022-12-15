@@ -228,7 +228,18 @@ float d{uniqueFontId}_uint(vec2 uv, uint number, float pixelSize) {{
     if(digitIndex < 10u - numberWidth)
         return 1.;
         
-    return dfont_frag(vec2(x, uv.y), 48u + digit % 10u, pixelSize);
+    return d{uniqueFontId}(vec2(x, uv.y), 48u + digit % 10u, pixelSize);
+}}
+
+float d{uniqueFontId}_int(vec2 uv, int number, float pixelSize) {{
+    float glyphSize = float(5 + 1) * pixelSize,
+        x = mod(uv.x, glyphSize),
+        xi = (uv.x - x) / glyphSize;
+
+    if(uint(xi) == 0u && number < 0)
+        return d{uniqueFontId}(uv, 45u, pixelSize);
+
+    return d{uniqueFontId}_uint(uv - vec2(glyphSize*float(number < 0),0.), uint(abs(number)), pixelSize);
 }}
 
 void mainImage(out vec4 fragColor, vec2 fragCoord) {{
@@ -237,6 +248,7 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {{
     fragColor.rgb = mix(fragColor.rgb, vec3(0), step(d{uniqueFontId}(uv+vec2(.5*iResolution.x/iResolution.y,0.)-7.*.01*vec2(0.,1.), 66u, .01), 0.));
     fragColor.rgb = mix(fragColor.rgb, vec3(0), step(d{uniqueFontId}_text(uv+vec2(.5*iResolution.x/iResolution.y,0.), 0u, .005), 0.));
     fragColor.rgb = mix(fragColor.rgb, vec3(0), step(d{uniqueFontId}_uint(uv+vec2(.5*iResolution.x/iResolution.y,0.)+7.*.01*vec2(0.,1.), uint(iFrame), .01), 0.));
+    fragColor.rgb = mix(fragColor.rgb, vec3(0), step(d{uniqueFontId}_int(uv+vec2(.5*iResolution.x/iResolution.y,0.)+7.*.01*vec2(0.,2.), int(-1337+iFrame), .01), 0.));
 }}
 
 '''.format(
