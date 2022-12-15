@@ -187,18 +187,43 @@ float d{uniqueFontId}_text(vec2 uv, uint index, float pixelSize) {{
     return (xi < 0. || xi >= float(textSize) || abs(uv.y-.5*{height}.*pixelSize) > {height}.*pixelSize) ? 1. : d{uniqueFontId}(vec2(x, uv.y), decode_single(localTextIndices.y, {uniqueFontId}_text_strings[localTextIndices.x]), pixelSize);
 }}
 
+uint log10(uint v) {{
+    return v < 10u ? 1u
+        : v < 100u ? 2u
+        : v < 1000u ? 3u
+        : v < 10000u ? 4u
+        : v < 100000u ? 5u
+        : v < 1000000u ? 6u
+        : v < 10000000u ? 7u
+        : v < 100000000u ? 8u
+        : 9u;
+}}
+
+uint pow10(uint v) {{
+    return v == 0u ? 1u
+        : v == 1u ? 10u
+        : v == 2u ? 100u
+        : v == 3u ? 1000u
+        : v == 4u ? 10000u
+        : v == 5u ? 100000u
+        : v == 6u ? 1000000u
+        : v == 7u ? 10000000u
+        : v == 8u ? 100000000u
+        : 1000000000u;
+}}
+
 float d{uniqueFontId}_uint(vec2 uv, uint number, float pixelSize) {{
-    uint numberWidth = max(uint(ceil(log(float(number))/log(10.))),1u);
+    uint numberWidth = max(log10(number), 1u);
 
     float glyphSize = float(5 + 1) * pixelSize,
         x = mod(uv.x, glyphSize),
-        xi = (uv.x - x) / glyphSize + 10.-float(numberWidth);
+        xi = (uv.x - x) / glyphSize + float(10u - numberWidth);
         
     if(xi < 0. || xi > 9. || abs(uv.y-.5*6.*pixelSize) > 6.*pixelSize)
         return 1.;
     
     uint digitIndex = uint(xi),
-        digit = number / uint(pow(10., 9.-float(digitIndex)));
+        digit = number / pow10(9u - digitIndex);
         
     if(digitIndex < 10u - numberWidth)
         return 1.;
