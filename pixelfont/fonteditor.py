@@ -177,7 +177,7 @@ uvec2 localIndices(uint globalByteIndex) {{
 }}
 
 float d{uniqueFontId}_text(vec2 uv, uint index, float pixelSize) {{
-    float glyphSize = float({width} + 1)*pixelSize,
+    float glyphSize = {widthPlusOne}.*pixelSize,
         x = mod(uv.x, glyphSize),
         xi = (uv.x - x)/glyphSize;
        
@@ -215,31 +215,53 @@ uint pow10(uint v) {{
 float d{uniqueFontId}_uint(vec2 uv, uint number, float pixelSize) {{
     uint numberWidth = max(log10(number), 1u);
 
-    float glyphSize = float(5 + 1) * pixelSize,
+    float glyphSize = {widthPlusOne}. * pixelSize,
         x = mod(uv.x, glyphSize),
         xi = (uv.x - x) / glyphSize + float(10u - numberWidth);
-        
-    if(xi < 0. || xi > 9. || abs(uv.y-.5*6.*pixelSize) > 6.*pixelSize)
-        return 1.;
-    
+
     uint digitIndex = uint(xi),
         digit = number / pow10(9u - digitIndex);
         
-    if(digitIndex < 10u - numberWidth)
-        return 1.;
-        
-    return d{uniqueFontId}(vec2(x, uv.y), 48u + digit % 10u, pixelSize);
+    return xi < 0. || xi > 9. || abs(uv.y-.5*glyphSize) > 6.*pixelSize || digitIndex < 10u - numberWidth
+        ? 1.
+        : d{uniqueFontId}(vec2(x, uv.y), 48u + digit % 10u, pixelSize);
 }}
 
 float d{uniqueFontId}_int(vec2 uv, int number, float pixelSize) {{
-    float glyphSize = float(5 + 1) * pixelSize,
+    float glyphSize = {widthPlusOne}. * pixelSize,
         x = mod(uv.x, glyphSize),
         xi = (uv.x - x) / glyphSize;
 
-    if(uint(xi) == 0u && number < 0)
+    return uint(xi) == 0u && number < 0
+        ? d{uniqueFontId}(uv, 45u, pixelSize)
+        : d{uniqueFontId}_uint(uv - vec2(glyphSize*float(number < 0),0.), uint(abs(number)), pixelSize);
+}}
+
+float d{uniqueFontId}_float(vec2 uv, float number, uint _precision, float pixelSize) {{
+    float glyphSize = {widthPlusOne}. * pixelSize,
+        x = mod(uv.x, glyphSize),
+        xi = (uv.x - x) / glyphSize;
+
+    if(uint(xi) == 0u && number < 0.)
         return d{uniqueFontId}(uv, 45u, pixelSize);
 
-    return d{uniqueFontId}_uint(uv - vec2(glyphSize*float(number < 0),0.), uint(abs(number)), pixelSize);
+    uv.x -= glyphSize * float(number < 0.);
+    number = abs(number);
+
+    int exponent = number == 0. ? 0 : int(floor(log(number)/log(10.)));
+
+    x = mod(uv.x, glyphSize);
+    xi = (uv.x - x) / glyphSize;
+
+    return uint(xi) == 0u
+        ? d{uniqueFontId}(vec2(x, uv.y), 48u + uint(floor(number/pow(10., float(exponent)))) % 10u, pixelSize)
+        : uint(xi) == 1u
+            ? d{uniqueFontId}(vec2(x, uv.y), 46u, pixelSize)
+            : uint(xi) < _precision + 1u
+                ? d{uniqueFontId}(vec2(x, uv.y), 48u + uint(floor(number/pow(10., float(exponent)-xi+1.))) % 10u, pixelSize)
+                : uint(xi) == _precision + 1u
+                    ? d{uniqueFontId}(vec2(x, uv.y), 69u, pixelSize)
+                    : d{uniqueFontId}_int(vec2(uv.x - float(_precision + 2u) * glyphSize, uv.y), exponent, pixelSize);
 }}
 
 void mainImage(out vec4 fragColor, vec2 fragCoord) {{
@@ -248,7 +270,8 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {{
     fragColor.rgb = mix(fragColor.rgb, vec3(0), step(d{uniqueFontId}(uv+vec2(.5*iResolution.x/iResolution.y,0.)-7.*.01*vec2(0.,1.), 66u, .01), 0.));
     fragColor.rgb = mix(fragColor.rgb, vec3(0), step(d{uniqueFontId}_text(uv+vec2(.5*iResolution.x/iResolution.y,0.), 0u, .005), 0.));
     fragColor.rgb = mix(fragColor.rgb, vec3(0), step(d{uniqueFontId}_uint(uv+vec2(.5*iResolution.x/iResolution.y,0.)+7.*.01*vec2(0.,1.), uint(iFrame), .01), 0.));
-    fragColor.rgb = mix(fragColor.rgb, vec3(0), step(d{uniqueFontId}_int(uv+vec2(.5*iResolution.x/iResolution.y,0.)+7.*.01*vec2(0.,2.), int(-1337+iFrame), .01), 0.));
+    fragColor.rgb = mix(fragColor.rgb, vec3(0), step(d{uniqueFontId}_int(uv+vec2(.5*iResolution.x/iResolution.y,0.)+7.*.01*vec2(0.,2.), int(-iFrame), .01), 0.));
+    fragColor.rgb = mix(fragColor.rgb, vec3(0), step(dfont_frag_float(uv+vec2(.5*iResolution.x/iResolution.y,0.)+7.*.01*vec2(0.,3.), iTime, 5u, .01), 0.));
 }}
 
 '''.format(
@@ -265,6 +288,7 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {{
         self._font.chunks(4),
     )),
     width = Glyph.Width,
+    widthPlusOne = Glyph.Width + 1,
     height = Glyph.Height,
     firstOrdinal = self._font.ordinals()[0],
     textCount = self._text.lineCount(),
