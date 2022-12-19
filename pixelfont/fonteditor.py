@@ -33,6 +33,8 @@ class FontEditor(QMainWindow):
         self.actionRemove_Glyph.triggered.connect(self.removeCurrentGlyph)
         self.actionExport_GLSL.triggered.connect(self.exportFont)
         self.actionAdd_Line.triggered.connect(self.addLine)
+        self.actionSave_Text_As.triggered.connect(self.saveTextAs)
+        self.actionLoad_Text.triggered.connect(self.loadText)
 
     def fileNew(self) -> None:
         self._fileName = None
@@ -119,15 +121,30 @@ class FontEditor(QMainWindow):
         self.listView.selectionModel().select(self.listView.model().index(self._font.ordinals().index(ordinal)), QItemSelectionModel.SelectionFlag.Select)
 
     def removeCurrentGlyph(self) -> None:
-        selectedIndices = self.listView.selectionModel().selection().indexes()
+        if self.listView.hasFocus():
+            selectedIndices = self.listView.selectionModel().selection().indexes()
 
-        if len(selectedIndices) == 0:
-            return
-        
-        self._font.removeGlyph(ord(selectedIndices[0].model().data(selectedIndices[0])))
-        self._updateGlyphTable()
-        if self._font.glyphCount() > 0:
-            self.listView.selectionModel().select(self.listView.model().index(0), QItemSelectionModel.SelectionFlag.Select)
+            if len(selectedIndices) == 0:
+                return
+
+            self._font.removeGlyph(ord(selectedIndices[0].model().data(selectedIndices[0])))
+            self._updateGlyphTable()
+            if self._font.glyphCount() > 0:
+                self.listView.selectionModel().select(self.listView.model().index(0), QItemSelectionModel.SelectionFlag.Deselect)
+                self.listView.selectionModel().select(self.listView.model().index(max(selectedIndices[0].row() - 1, 0)), QItemSelectionModel.SelectionFlag.Select)
+        elif self.listView_2.hasFocus():
+            selectedIndices = self.listView_2.selectionModel().selection().indexes()
+
+            if len(selectedIndices) == 0:
+                return
+
+            del self._text._lines[selectedIndices[0].row()]
+
+            self.updateTextTable()
+
+            if self._text.lineCount() > 0:
+                self.listView_2.selectionModel().select(self.listView_2.model().index(0), QItemSelectionModel.SelectionFlag.Deselect)
+                self.listView_2.selectionModel().select(self.listView_2.model().index(max(selectedIndices[0].row() - 1, 0)), QItemSelectionModel.SelectionFlag.Select)
 
     def _fontId(self, shaderFileName) -> None:
         return basename(shaderFileName).replace(' ', '_').replace('.', '_')
@@ -317,6 +334,52 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {{
         if self.lineEdit.text() != "":
             self._text.add(self.lineEdit.text())
             self.lineEdit.setText("")
+
+        self.updateTextTable()
+
+    def updateTextTable(self):
+        newModel = QStringListModel(self._text._lines)
+        newModel.dataChanged.connect(self._textTableChanged)
+        self.listView_2.setModel(newModel)
+
+    def _textTableChanged(self,
+        topLeft: QModelIndex,
+        bottomRight: QModelIndex,
+        roles: List[int] = [Qt.ItemDataRole.EditRole],
+    ) -> None:
+        self._text._lines[topLeft.row()] = topLeft.model().data(topLeft, Qt.ItemDataRole.EditRole)
+
+    def saveTextAs(self):
+        (textFileName, _) = QFileDialog.getSaveFileName(
+            self,
+            "Export Text Table...",
+            "table",
+            "ALDI Text Tables (*.att)",
+        )
+
+        if textFileName == "":
+            return
+
+        with open(textFileName, "wb") as f:
+            f.write(self._text.toBytes())
+            f.close()
+
+    def loadText(self):
+        (textFileName, _) = QFileDialog.getOpenFileName(
+            self,
+            "Export Text Table...",
+            "table",
+            "ALDI Text Tables (*.att)",
+        )
+
+        if textFileName == "":
+            return
+
+        with open(textFileName, "rb") as f:
+            self._text.fromBytes(f.read())
+            f.close()
+
+        self.updateTextTable()
 
 if __name__ == '__main__':
     app = QApplication(argv)
