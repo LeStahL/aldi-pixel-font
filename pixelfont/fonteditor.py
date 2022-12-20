@@ -8,7 +8,8 @@ from glypheditor import GlyphEditor
 from font import Font
 from glyph import Glyph
 from text import Text
-from os.path import basename
+from os.path import basename, dirname, join
+from os import listdir
 
 class FontEditor(QMainWindow):
     def __init__(self,
@@ -17,7 +18,7 @@ class FontEditor(QMainWindow):
     ) -> None:
         super().__init__(parent, flags)
 
-        uic.loadUi('FontEditor.ui', self)
+        uic.loadUi(join(dirname(__file__), 'fonteditor.ui'), self)
 
         self.glyphEditor = GlyphEditor()
         self.centralWidget().layout().addWidget(self.glyphEditor)

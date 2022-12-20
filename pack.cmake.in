@@ -1,0 +1,2 @@
+file(COPY ${CMAKE_INSTALL_PREFIX}/fonteditor-${VERSION}.exe DESTINATION ${PROJECT_BINARY_DIR})
+execute_process(COMMAND ${CMAKE_COMMAND} -E tar cfv fonteditor-${VERSION}.zip fonteditor-${VERSION}.exe --format=zip)
