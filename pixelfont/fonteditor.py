@@ -260,6 +260,8 @@ float d{uniqueFontId}_float(vec2 uv, float number, uint _precision, float pixelS
         x = mod(uv.x, glyphSize),
         xi = (uv.x - x) / glyphSize;
 
+    if(int(xi) < 0) return 1.;
+
     if(uint(xi) == 0u && number < 0.)
         return d{uniqueFontId}(uv, 45u, pixelSize);
 
