@@ -37,6 +37,8 @@ class FontEditor(QMainWindow):
         self.actionSave_Text_As.triggered.connect(self.saveTextAs)
         self.actionLoad_Text.triggered.connect(self.loadText)
 
+        self.newTextEdit.returnPressed.connect(self.addLine)
+
     def fileNew(self) -> None:
         self._fileName = None
         self._font = Font()
@@ -88,10 +90,9 @@ class FontEditor(QMainWindow):
             self._font.ordinals(),
         ))
         newModel.dataChanged.connect(self._glyphTableEdited)
-        self.listView.setModel(newModel)
-
-        self.listView.selectionModel().selectionChanged.connect(self._glyphTableSelectionChanged)
-        self.listView.selectionModel().select(self.listView.model().index(0), QItemSelectionModel.SelectionFlag.Select)
+        self.glyphListView.setModel(newModel)
+        self.glyphListView.selectionModel().selectionChanged.connect(self._glyphTableSelectionChanged)
+        self.glyphListView.selectionModel().select(self.glyphListView.model().index(0), QItemSelectionModel.SelectionFlag.Select)
 
     def _glyphTableEdited(self,
         topLeft: QModelIndex,
@@ -119,11 +120,11 @@ class FontEditor(QMainWindow):
             return
 
         self._updateGlyphTable()
-        self.listView.selectionModel().select(self.listView.model().index(self._font.ordinals().index(ordinal)), QItemSelectionModel.SelectionFlag.Select)
+        self.glyphListView.selectionModel().select(self.glyphListView.model().index(self._font.ordinals().index(ordinal)), QItemSelectionModel.SelectionFlag.Select)
 
     def removeCurrentGlyph(self) -> None:
-        if self.listView.hasFocus():
-            selectedIndices = self.listView.selectionModel().selection().indexes()
+        if self.glyphListView.hasFocus():
+            selectedIndices = self.glyphListView.selectionModel().selection().indexes()
 
             if len(selectedIndices) == 0:
                 return
@@ -131,10 +132,10 @@ class FontEditor(QMainWindow):
             self._font.removeGlyph(ord(selectedIndices[0].model().data(selectedIndices[0])))
             self._updateGlyphTable()
             if self._font.glyphCount() > 0:
-                self.listView.selectionModel().select(self.listView.model().index(0), QItemSelectionModel.SelectionFlag.Deselect)
-                self.listView.selectionModel().select(self.listView.model().index(max(selectedIndices[0].row() - 1, 0)), QItemSelectionModel.SelectionFlag.Select)
-        elif self.listView_2.hasFocus():
-            selectedIndices = self.listView_2.selectionModel().selection().indexes()
+                self.glyphListView.selectionModel().select(self.glyphListView.model().index(0), QItemSelectionModel.SelectionFlag.Deselect)
+                self.glyphListView.selectionModel().select(self.glyphListView.model().index(max(selectedIndices[0].row() - 1, 0)), QItemSelectionModel.SelectionFlag.Select)
+        elif self.textListView.hasFocus():
+            selectedIndices = self.textListView.selectionModel().selection().indexes()
 
             if len(selectedIndices) == 0:
                 return
@@ -144,8 +145,8 @@ class FontEditor(QMainWindow):
             self.updateTextTable()
 
             if self._text.lineCount() > 0:
-                self.listView_2.selectionModel().select(self.listView_2.model().index(0), QItemSelectionModel.SelectionFlag.Deselect)
-                self.listView_2.selectionModel().select(self.listView_2.model().index(max(selectedIndices[0].row() - 1, 0)), QItemSelectionModel.SelectionFlag.Select)
+                self.textListView.selectionModel().select(self.textListView.model().index(0), QItemSelectionModel.SelectionFlag.Deselect)
+                self.textListView.selectionModel().select(self.textListView.model().index(max(selectedIndices[0].row() - 1, 0)), QItemSelectionModel.SelectionFlag.Select)
 
     def _fontId(self, shaderFileName) -> None:
         return basename(shaderFileName).replace(' ', '_').replace('.', '_')
@@ -334,16 +335,19 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {{
             f.close()
 
     def addLine(self):
-        if self.lineEdit.text() != "":
-            self._text.add(self.lineEdit.text())
-            self.lineEdit.setText("")
+        if self.newTextEdit.text() != "":
+            self._text.add(self.newTextEdit.text())
+            self.newTextEdit.setText("")
 
-        self.updateTextTable()
+        self.updateTextTable(scroll_down=True)
 
-    def updateTextTable(self):
+    def updateTextTable(self, scroll_down=False):
         newModel = QStringListModel(self._text._lines)
         newModel.dataChanged.connect(self._textTableChanged)
-        self.listView_2.setModel(newModel)
+        self.textListView.setModel(newModel)
+        self.textListView.selectionModel().currentChanged.connect(self.sentenceSelected)
+        if scroll_down:
+            self.textListView.scrollTo(newModel.index(len(self._text._lines) - 1))
 
     def _textTableChanged(self,
         topLeft: QModelIndex,
@@ -383,6 +387,13 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {{
             f.close()
 
         self.updateTextTable()
+
+    def sentenceSelected(self, current, previous, **kwargs):
+        sentence = current.model().data(current)
+        row = current.row()
+        total = current.model().rowCount()
+        self.listSelectedLabel.setText(f"Selected #{row}: {sentence} (n={total})")
+
 
 if __name__ == '__main__':
     app = QApplication(argv)
